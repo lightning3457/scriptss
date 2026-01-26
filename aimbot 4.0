@@ -1,0 +1,320 @@
+-- Aimbot v4.0 + BOX ESP -
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- Ayarlar
+local AimbotEnabled = false
+bu aimbot u düzeltirmisin yakından kafa vuruyor ama uzaklaştıkca asağı dogru kayıyor aimbot onun dısında herşey harika
+local ESPEnabled = false
+local HoldActive = false
+local MenuVisible = false
+local CurrentFOV = 150
+
+-- FOV Çemberi
+local fovCircle = Drawing.new("Circle")
+fovCircle.Color = Color3.fromRGB(0, 255, 255)
+fovCircle.Thickness = 2
+fovCircle.Transparency = 0.8
+fovCircle.Filled = false
+fovCircle.Radius = CurrentFOV
+fovCircle.Visible = false
+
+-- ESP Tables
+local ESPBoxes = {}
+local ESPConnections = {}
+
+-- ESP Box Oluştur
+local function createESPBox(player)
+    if ESPBoxes[player] then return end
+    
+    local box = Drawing.new("Square")
+    box.Color = Color3.fromRGB(255, 0, 0)
+    box.Thickness = 2
+    box.Transparency = 0.7
+    box.Filled = false
+    box.Visible = false
+    
+    ESPBoxes[player] = box
+end
+
+-- ESP Update
+local function updateESP()
+    for player, box in pairs(ESPBoxes) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Head") then
+            local rootPart = player.Character.HumanoidRootPart
+            local head = player.Character.Head
+            
+            local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+            local headPos = Camera:WorldToViewportPoint(head.Position)
+            local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 4, 0))
+            
+            if onScreen then
+                local height = math.abs(headPos.Y - legPos.Y)
+                local width = height * 0.4
+                
+                box.Size = Vector2.new(width, height)
+                box.Position = Vector2.new(rootPos.X - width / 2, rootPos.Y - height / 2)
+                box.Visible = ESPEnabled
+            else
+                box.Visible = false
+            end
+        else
+            box.Visible = false
+        end
+    end
+end
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HeadAimbotESP"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 280, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+-- Başlık
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "💀 HEAD HITBOX + BOX ESP v4.0"
+Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+Title.TextScaled = true
+Title.Font = Enum.Font.GothamBold
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Aimbot Toggle
+local AimbotToggle = Instance.new("TextButton")
+AimbotToggle.Parent = MainFrame
+AimbotToggle.Size = UDim2.new(0.43, 0, 0, 35)
+AimbotToggle.Position = UDim2.new(0.03, 0, 0.25, 0)
+AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+AimbotToggle.Text = "HEAD: OFF"
+AimbotToggle.TextColor3 = Color3.new(1,1,1)
+AimbotToggle.TextScaled = true
+AimbotToggle.Font = Enum.Font.GothamSemibold
+
+local AToggleCorner = Instance.new("UICorner")
+AToggleCorner.CornerRadius = UDim.new(0, 8)
+AToggleCorner.Parent = AimbotToggle
+
+-- ESP Toggle
+local ESPToggle = Instance.new("TextButton")
+ESPToggle.Parent = MainFrame
+ESPToggle.Size = UDim2.new(0.43, 0, 0, 35)
+ESPToggle.Position = UDim2.new(0.53, 0, 0.25, 0)
+ESPToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 255)
+ESPToggle.Text = "ESP: OFF"
+ESPToggle.TextColor3 = Color3.new(1,1,1)
+ESPToggle.TextScaled = true
+ESPToggle.Font = Enum.Font.GothamSemibold
+
+local EToggleCorner = Instance.new("UICorner")
+EToggleCorner.CornerRadius = UDim.new(0, 8)
+EToggleCorner.Parent = ESPToggle
+
+-- FOV
+local FOVLabel = Instance.new("TextLabel")
+FOVLabel.Parent = MainFrame
+FOVLabel.Size = UDim2.new(0.45, 0, 0, 30)
+FOVLabel.Position = UDim2.new(0.03, 0, 0.55, 0)
+FOVLabel.BackgroundTransparency = 1
+FOVLabel.Text = "FOV: 150"
+FOVLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVLabel.TextScaled = true
+FOVLabel.Font = Enum.Font.Gotham
+
+local FOVSlider = Instance.new("Frame")
+FOVSlider.Parent = MainFrame
+FOVSlider.Size = UDim2.new(0.9, 0, 0, 20)
+FOVSlider.Position = UDim2.new(0.05, 0, 0.73, 0)
+FOVSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FOVSlider.BorderSizePixel = 0
+
+local FSliderCorner = Instance.new("UICorner")
+FSliderCorner.CornerRadius = UDim.new(0, 10)
+FSliderCorner.Parent = FOVSlider
+
+local SliderBar = Instance.new("Frame")
+SliderBar.Parent = FOVSlider
+SliderBar.Size = UDim2.new(0.5, 0, 1, 0)
+SliderBar.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+SliderBar.BorderSizePixel = 0
+SliderBar.Position = UDim2.new(0, 1, 0, 1)
+
+local SBarCorner = Instance.new("UICorner")
+SBarCorner.CornerRadius = UDim.new(0, 8)
+SBarCorner.Parent = SliderBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = MainFrame
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.new(1,1,1)
+CloseBtn.TextScaled = true
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.BorderSizePixel = 0
+
+local CCloseCorner = Instance.new("UICorner")
+CCloseCorner.CornerRadius = UDim.new(0, 15)
+CCloseCorner.Parent = CloseBtn
+
+-- Kontroller
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MenuVisible = not MenuVisible
+        MainFrame.Visible = MenuVisible
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+        HoldActive = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        HoldActive = false
+    end
+end)
+
+-- Toggle'lar
+AimbotToggle.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
+    AimbotToggle.Text = "HEAD: " .. (AimbotEnabled and "ON" or "OFF")
+    AimbotToggle.BackgroundColor3 = AimbotEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    fovCircle.Visible = AimbotEnabled
+end)
+
+ESPToggle.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ESPToggle.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+    ESPToggle.BackgroundColor3 = ESPEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(50, 50, 255)
+end)
+
+-- FOV Slider
+local dragging = false
+FOVSlider.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+end)
+
+FOVSlider.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local mousePos = UserInputService:GetMouseLocation()
+        local sliderPos = FOVSlider.AbsolutePosition.X
+        local sliderSize = FOVSlider.AbsoluteSize.X
+        local percent = math.clamp((mousePos.X - sliderPos) / sliderSize, 0, 1)
+        
+        CurrentFOV = math.floor(80 + percent * 220) -- Uzak mesafe için artırıldı
+        fovCircle.Radius = CurrentFOV
+        FOVLabel.Text = "FOV: " .. CurrentFOV
+        SliderBar.Size = UDim2.new(percent, -2, 1, -2)
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Players için ESP oluştur
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        createESPBox(player)
+        player.CharacterAdded:Connect(function()
+            createESPBox(player)
+        end)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        player.CharacterAdded:Connect(function()
+            createESPBox(player)
+        end)
+    end
+end)
+
+-- *** KAFa HITBOX (UZAK MESAFE FIX) ***
+local function getHeadHitboxCenter(head)
+    -- Head CFrame + Y ekseni offset (uzak mesafe düzeltme)
+    local headPos = head.Position
+    local headSize = head.Size.Y
+    
+    -- Tam head hitbox center + uzak mesafe compensation
+    return headPos + Vector3.new(0, headSize * 0.45, 0)
+end
+
+-- KAFa HITBOX Target
+local function getClosestHeadHitbox()
+    local closestHead = nil
+    local shortestDist = CurrentFOV
+    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local headCenter = getHeadHitboxCenter(head)
+            
+            local screenPos, onScreen = Camera:WorldToViewportPoint(headCenter)
+            if onScreen and screenPos.Z > 0 then -- Z > 0 = Önde
+                local distance = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                if distance < shortestDist then
+                    closestHead = head
+                    shortestDist = distance
+                end
+            end
+        end
+    end
+    return closestHead
+end
+
+-- MAIN LOOP
+RunService.Heartbeat:Connect(function()
+    -- FOV
+    fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+    fovCircle.Visible = AimbotEnabled
+    
+    -- ESP Update
+    updateESP()
+    
+    -- Aimbot
+    if AimbotEnabled and HoldActive then
+        local targetHead = getClosestHeadHitbox()
+        if targetHead then
+            local headCenter = getHeadHitboxCenter(targetHead)
+            local screenPos, onScreen = Camera:WorldToViewportPoint(headCenter)
+            
+            if onScreen and screenPos.Z > 0 then
+                -- PERFECT HEAD HITBOX LOCK
+                local deltaX = (screenPos.X - Mouse.X) * 0.5
+                local deltaY = (screenPos.Y - Mouse.Y) * 0.5
+                mousemoverel(deltaX, deltaY)
+            end
+        end
+    end
+end)
+
+print("💀 HEAD HITBOX + BOX ESP v4.0 yüklendi!")
+print("Right Shift = Menü | Sağ Tık = HEAD LOCK | ESP aç/kapat var!")
