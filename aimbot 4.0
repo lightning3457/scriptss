@@ -8,7 +8,6 @@ local Mouse = LocalPlayer:GetMouse()
 
 -- Ayarlar
 local AimbotEnabled = false
-bu aimbot u düzeltirmisin yakından kafa vuruyor ama uzaklaştıkca asağı dogru kayıyor aimbot onun dısında herşey harika
 local ESPEnabled = false
 local HoldActive = false
 local MenuVisible = false
